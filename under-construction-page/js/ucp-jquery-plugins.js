@@ -1,7 +1,7 @@
 /*
  * UnderConstructionPage
  * jQuery plugins
- * (c) WebFactory Ltd, 2015 - 2025
+ * (c) WebFactory Ltd, 2015 - 2026
  */
 
 /**

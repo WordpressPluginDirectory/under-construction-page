@@ -3,8 +3,8 @@ Contributors: WebFactory
 Tags: coming soon page, under construction mode, under construction, under construction page, coming soon mode
 Requires at least: 4.0
 Requires PHP: 5.2
-Tested up to: 6.8
-Stable tag: 4.03
+Tested up to: 7.0
+Stable tag: 5.81
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -13,24 +13,24 @@ Easy to use Under Construction Page & Coming Soon Page. Enable Under Constructio
 
 == Description ==
 
-Create an Under Construction Page, Maintenance Mode Page, Coming Soon Page or a Landing Page that takes **less than a minute to install & configure**. Under Construction won't waste your time! It's simple, fast, efficient & user-friendly with <a href="https://underconstructionpage.com/#designs">great templates</a> users love. Under Construction uses Bunny Fonts for GDPR compatibility.
+Create an <a href="https://underconstructionpage.com/">Under Construction Page</a>, Maintenance Mode Page, Coming Soon Page or a Landing Page that takes **less than a minute to install & configure**. Under Construction won't waste your time! It's simple, fast, efficient & user-friendly with <a href="https://underconstructionpage.com/#designs">500+ great templates</a> users love. Under Construction uses Bunny Fonts for GDPR compatibility.
 
 [youtube https://www.youtube.com/watch?v=fqqWrQENSDc]
 
-> **PRO** version offers more than 50 extra features and options including the drag&drop builder, over a million hi-res searchable images, 300+ templates, affiliate&traffic tracking, advanced access control, MailChimp, Zapier & universal autoresponder integration, white-label license mode and priority support. Find out more on the <a href="https://underconstructionpage.com/">official plugin site</a>.
+> **PRO version** offers more than 50 extra features and options including the drag&drop builder, over a million hi-res searchable images, 500+ templates, affiliate&traffic tracking, advanced access control, MailChimp, Zapier & universal autoresponder integration, white-label license mode and priority support. Find out more on the <a href="https://underconstructionpage.com/">official plugin site</a>.
 
-A simple, no-nonsense under construction plugin for all those situations when you have to hide the site behind an Under Construction page for a while. Live examples are available on the <a href="https://underconstructionpage.com/">Under Construction website</a>. Give us a shout on Twitter <a href="http://twitter.com/WebFactoryLtd">@WebFactoryLtd</a> or check out the <a href="https://youtu.be/fqqWrQENSDc">video</a>.
+A simple, no-nonsense under construction plugin for all those situations when you have to hide the site behind an Under Construction page for a while. Live examples are available on the <a href="https://underconstructionpage.com/">Under Construction website</a>. Give us a shout on X <a href="http://twitter.com/WebFactoryLtd">@WebFactoryLtd</a> or check out the <a href="https://youtu.be/fqqWrQENSDc">video</a>.
 
 Thanks to our partnership with <a href="https://wordpress.org/plugins/weglot/">Weglot</a>, UCP is fully multilanguage ready and you can instantly translate your under construction page to 100+ languages with one click.
 
-**If you're having problems with SSL or HTTPS try our free <a href="https://wordpress.org/plugins/wp-force-ssl/">WP Force SSL</a> plugin. It's a great plugin to enable SSL and fix SSL issues.**
+**Having problems with spam, bots, or AI scrapers? Have a look at our <a href="https://wordpress.org/plugins/advanced-google-recaptcha/">free Captcha plugin</a> used on over 200,000 sites.**
 
 **Options**
 
 * Under construction mode - on / off
 * Automatic End date & time - automatically disable under construction mode on a set date
 * Google Analytics Tracking ID - enable tracking via Google Analytics
-* Theme - <a href="https://underconstructionpage.com/templates/">test all available themes (200+)</a>
+* Theme - <a href="https://underconstructionpage.com/templates/">test all available themes (500+)</a>
 * Custom CSS - adjust any part of the page to fit your needs
 * Title - page title, for SEO
 * Description - page description, for SEO
@@ -40,7 +40,7 @@ Thanks to our partnership with <a href="https://wordpress.org/plugins/weglot/">W
 * Login Button - show a discrete link to the login form, or WP admin if you're logged in
 * Social icons/links - new ones are added with every update; let us know if we missed your favorite ones
   * Facebook
-  * Twitter
+  * X (Twitter)
   * LinkedIn
   * YouTube
   * Vimeo
@@ -57,6 +57,8 @@ Thanks to our partnership with <a href="https://wordpress.org/plugins/weglot/">W
   * VK
 * Whitelisted User Roles - user roles who see the site, instead of under construction page
 * Whitelisted Users - users who see the site, instead of under construction page
+
+**If you're having problems with SSL or HTTPS try our free <a href="https://wordpress.org/plugins/wp-force-ssl/">WP Force SSL</a> plugin. It's a great plugin to enable SSL and fix SSL issues.**
 
 Under Construction Page is compatible with the following caching plugins: W3 Total Cache, WP Super Cache, Endurance Page Cache, SiteGround SuperCacher, WP Fastest Cache, Swift Performance Cache, WP Rocket, Cache Enabler, and Hummingbird cache.
 
@@ -140,6 +142,19 @@ Or if needed, upload manually;
 
 
 == Changelog ==
+
+= 5.81 =
+* 2026/07/12
+* Synced version number with the pro version
+
+= 4.05 =
+* 2026/04/07
+* Minor fixes
+
+= 4.04 =
+* 2026/02/11
+* RTL layout fix
+
 = 4.03 =
 * 2025/08/10
 * expanded list of allowed CSS properties in Custom CSS

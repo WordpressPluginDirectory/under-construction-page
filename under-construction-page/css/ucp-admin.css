@@ -1,7 +1,7 @@
 /*
  * UnderConstructionPage
  * Main backend CSS
- * (c) Web factory Ltd, 2015 - 2025
+ * (c) Web factory Ltd, 2015 - 2026
  */
 
 @import url('//fonts.bunny.net/css?family=Roboto:400,500,600,900');
@@ -339,51 +339,6 @@ span.select2-container .select2-search--inline .select2-search__field {
 
 .ui-widget-overlay {
   opacity: 0.85;
-}
-
-.ucp-survey-dialog .ui-dialog-titlebar {
-  text-align: center;
-  font-weight: bold;
-}
-
-.ucp-survey-dialog .ui-dialog-titlebar-close {
-  display: none;
-}
-
-.ucp-survey-dialog .ui-dialog-content {
-  padding: 20px 25px;
-  font-size: 15px;
-}
-
-.ucp-survey-dialog b {
-  font-weight: bold;
-}
-
-.ucp-survey-dialog .footer {
-  margin: 20px 0 0 0;
-  text-align: center;
-}
-
-.ucp-survey-dialog .footer #emailme {
-  margin: 0 5px -3px 0;
-}
-
-.ucp-survey-dialog .footer .button-primary {
-  border-radius: 0;
-  font-size: 15px;
-  box-shadow: none;
-  text-shadow: none;
-  margin-top: 5px;
-}
-
-.ucp-survey-dialog .footer .dismiss-survey {
-  padding-top: 25px;
-  display: block;
-}
-
-.ucp-survey-dialog .ui-dialog-content p {
-  margin: 0 0 20px 0;
-  font-size: 15px;
 }
 
 .question-wrapper {
@@ -1095,6 +1050,20 @@ h3.ucp-pro-logo span {
 .upsell-header b {
   font-weight: bolder;
 }
+.upsell-footer-2 {
+  margin: 0 0 0 0;
+  background: #ff7900;
+  color: #fefefe;
+  padding: 10px;
+  box-sizing: content-box;
+  border: 1px solid #111;
+}
+.upsell-footer-2 b {
+  font-weight: bolder;
+}
+.upsell-footer-2 a {
+  color: white;
+}
 #ucp-pricing-table,
 #ucp-pricing-table tr,
 #ucp-pricing-table td,
@@ -1257,8 +1226,8 @@ option.weglot-promo {
   display: none !important;
 }
 
-#wpfssl-ad {
-  border: 3px solid #42982e;
+#wpcaptcha-ad {
+  border: 3px solid #253bac;
   min-width: 300px;
   max-width: 400px;
   padding: 10px 20px;
@@ -1299,10 +1268,10 @@ option.weglot-promo {
   }
 }
 
-#wpfssl-ad a.button {
+#wpcaptcha-ad a.button {
   padding: 11px 20px;
   color: white;
-  background: #42982e;
+  background: #253bac;
   font-weight: 600;
   border: none;
   line-height: 1.5;
@@ -1312,11 +1281,11 @@ option.weglot-promo {
   max-width: 90%;
 }
 
-#wpfssl-ad a.button:hover,
-#wpfssl-ad a.button:active,
-#wpfssl-ad a.button:focus {
+#wpcaptcha-ad a.button:hover,
+#wpcaptcha-ad a.button:active,
+#wpcaptcha-ad a.button:focus {
   box-shadow: 0px 0px 10px 0px rgb(50 138 210 / 52%);
-  background: #42982e;
+  background: #253bac;
   color: white;
   border: none;
 }
@@ -1332,6 +1301,10 @@ div.ui-dialog {
 #ucp_rate_notice,
 #ucp_update_pro{
     max-width: 970px;
+}
+
+.notice {
+  max-width: 980px;
 }
 
 @media screen and (max-width: 1520px) {

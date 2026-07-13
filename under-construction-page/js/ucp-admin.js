@@ -1,7 +1,7 @@
 /*
  * UnderConstructionPage
  * Main backend JS
- * (c) WebFactory Ltd, 2015 - 2025
+ * (c) WebFactory Ltd, 2015 - 2026
  */
 
 
@@ -42,66 +42,11 @@ jQuery(document).ready(function($) {
   });
 
 
-  // maybe init survey dialog
-  $('#features-survey-dialog').dialog({'dialogClass': 'wp-dialog ucp-dialog ucp-survey-dialog',
-                               'modal': 1,
-                               'resizable': false,
-                               'zIndex': 9999,
-                               'width': 550,
-                               'height': 'auto',
-                               'show': 'fade',
-                               'hide': 'fade',
-                               'open': function(event, ui) { ucp_fix_dialog_close(event, ui); },
-                               'close': function(event, ui) { },
-                               'autoOpen': ucp.open_survey,
-                               'closeOnEscape': true
-                              });
-
-
   // turn questions into checkboxes
   $('.question-wrapper').on('click', function(e) {
     $('.question-wrapper').removeClass('selected');
     $(this).addClass('selected');
 
-    e.preventDefault();
-    return false;
-  });
-
-
-  // dismiss survey forever
-  $('.dismiss-survey').on('click', function(e) {
-    $('#features-survey-dialog').dialog('close');
-
-    $.post(ajaxurl, { survey: $(this).data('survey'),
-                      _ajax_nonce: ucp.nonce_dismiss_survey,
-                      action: 'ucp_dismiss_survey'
-    });
-
-    e.preventDefault();
-    return false;
-  });
-
-
-  // submit and hide survey
-  $('.submit-survey').on('click', function(e) {
-    if ($('.question-wrapper.selected').length != 1) {
-      alert('Please choose the way you use UCP.');
-      return false;
-    }
-
-    answers = $('.question-wrapper.selected').data('value');
-    answers += '-' + $('.question-wrapper').index($('.question-wrapper.selected'));
-
-    $.post(ajaxurl, { survey: $(this).data('survey'),
-                      answers: answers,
-                      emailme: $('#features-survey-dialog #emailme:checked').val(),
-                      _ajax_nonce: ucp.nonce_submit_survey,
-                      action: 'ucp_submit_survey'
-    });
-
-    alert('Thank you for your time! We appriciate your input!');
-
-    $('#features-survey-dialog').dialog('close');
     e.preventDefault();
     return false;
   });
@@ -370,6 +315,7 @@ jQuery(document).ready(function($) {
     $(this).blur();
 
     $('#upsell-dialog').dialog('open');
+    $('#tabs_upsell').tabs('option', 'active', 0);
 
     if ($(this).data('tab') == 'buy') {
       $('#tabs_upsell').tabs('option', 'active', 0);
@@ -380,6 +326,20 @@ jQuery(document).ready(function($) {
 
     return false;
   });
+
+  // show upsell popup every 3 months
+  if (window.localStorage.getItem('ucp_upsell_timestamp') === null ||
+      (new Date().getTime() / 1000 - window.localStorage.getItem('ucp_upsell_timestamp')) > (86400 * 90)) {
+    window.localStorage.setItem('ucp_upsell_timestamp', Math.round(new Date().getTime() / 1000));
+
+    $('.promo-button, .promo-link').each(function(ind, el) {
+      tmp = $(el).data('href-org');
+      tmp = tmp.replace('pricing-table', 'welcome');
+      $(el).attr('href', tmp);
+    });
+    $('#upsell-dialog').dialog('open');
+    $('#tabs_upsell').tabs('option', 'active', 0);
+  }
 
   $('.settings_page_ucp').on('click', '.open-weglot-upsell', function(e) {
     e.preventDefault();
@@ -463,25 +423,38 @@ jQuery(document).ready(function($) {
     ucp_countdown_interval = setInterval(ucp_update_timer, 1000);
   }
 
-  function ucp_position_wpfssl_ad() {
+  function ucp_position_wpsidebar_ad() {
     pos_left = Math.round($('#ucp_tabs').width()) + 220;
     pos_top = Math.round($('.ucp-logo').offset().top) + 10;
 
-    $('#ucp-sidebar-ads').css('top', pos_top + 'px').css('left', pos_left + 'px');
-    $('#ucp-sidebar-ads').show();
-  } // ucp_position_wpfssl_ad
+    if ($("body").hasClass("rtl")) {
+      $("#ucp-sidebar-ads").css({
+        top: pos_top + "px",
+        right: pos_left + "px",
+        left: "auto",
+      });
+    } else {
+      $("#ucp-sidebar-ads").css({
+        top: pos_top + "px",
+        left: pos_left + "px",
+        right: "auto",
+      });
+    }
 
-  ucp_position_wpfssl_ad();
+    $('#ucp-sidebar-ads').show();
+  } // ucp_position_wpsidebar_ad
+
+  ucp_position_wpsidebar_ad();
   $(window).on('resize', function() {
-    ucp_position_wpfssl_ad();
+    ucp_position_wpsidebar_ad();
   })
 
-  $('.install-wpfssl').on('click',function(e){
-    if (!confirm('The free WP Force SSL plugin will be installed & activated from the official WordPress repository.')) {
+  $('.install-wpcaptcha').on('click',function(e){
+    if (!confirm('The free WP Advanced Google ReCaptcha plugin will be installed & activated from the official WordPress repository.')) {
       return;
     }
 
-    jQuery('body').append('<div style="width:550px;height:450px; position:fixed;top:10%;left:50%;margin-left:-275px; color:#444; background-color: #fbfbfb;border:1px solid #DDD; border-radius:4px;box-shadow: 0px 0px 0px 4000px rgba(0, 0, 0, 0.85);z-index: 9999999;"><iframe src="' + ucp.wpfssl_install_url + '" style="width:100%;height:100%;border:none;" /></div>');
+    jQuery('body').append('<div style="width:550px;height:450px; position:fixed;top:10%;left:50%;margin-left:-275px; color:#444; background-color: #fbfbfb;border:1px solid #DDD; border-radius:4px;box-shadow: 0px 0px 0px 4000px rgba(0, 0, 0, 0.85);z-index: 9999999;"><iframe src="' + ucp.wpcaptcha_install_url + '" style="width:100%;height:100%;border:none;" /></div>');
     jQuery('#wpwrap').css('pointer-events', 'none');
 
     e.preventDefault();

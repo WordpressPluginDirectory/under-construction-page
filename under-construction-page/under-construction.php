@@ -4,15 +4,15 @@
   Plugin URI: https://underconstructionpage.com/
   Description: Put your site behind a great looking under construction, coming soon, maintenance mode or landing page.
   Author: WebFactory Ltd
-  Version: 4.03
+  Version: 5.81
   Requires at least: 4.0
   Requires PHP: 5.2
-  Tested up to: 6.8
+  Tested up to: 7.0
   License: GPLv2 or later
   Author URI: https://www.webfactoryltd.com/
   Text Domain: under-construction-page
 
-  Copyright 2015 - 2025  WebFactory Ltd  (email: ucp@webfactoryltd.com)
+  Copyright 2015 - 2026  WebFactory Ltd  (email: ucp@webfactoryltd.com)
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2, as
@@ -40,7 +40,6 @@ define('UCP_OPTIONS_KEY', 'ucp_options');
 define('UCP_META_KEY', 'ucp_meta');
 define('UCP_POINTERS_KEY', 'ucp_pointers');
 define('UCP_NOTICES_KEY', 'ucp_notices');
-define('UCP_SURVEYS_KEY', 'ucp_surveys');
 
 require_once 'wf-flyout/wf-flyout.php';
 new wf_flyout(__FILE__);
@@ -98,15 +97,13 @@ class UCP
             add_action('admin_action_ucp_change_status', array(__CLASS__, 'change_status'));
             add_action('admin_action_ucp_reset_settings', array(__CLASS__, 'reset_settings'));
             add_action('admin_action_install_weglot', array(__CLASS__, 'install_weglot'));
-            add_action('admin_action_install_wpfssl', array(__CLASS__, 'install_wpfssl'));
+            add_action('admin_action_install_wpcaptcha', array(__CLASS__, 'install_wpcaptcha'));
 
             // enqueue admin scripts
             add_action('admin_enqueue_scripts', array(__CLASS__, 'admin_enqueue_scripts'), 100, 1);
 
             // AJAX endpoints
             add_action('wp_ajax_ucp_dismiss_pointer', array(__CLASS__, 'dismiss_pointer_ajax'));
-            add_action('wp_ajax_ucp_dismiss_survey', array(__CLASS__, 'dismiss_survey_ajax'));
-            add_action('wp_ajax_ucp_submit_survey', array(__CLASS__, 'submit_survey_ajax'));
             add_action('wp_ajax_ucp_submit_support_message', array(__CLASS__, 'submit_support_message_ajax'));
         } else {
             // main plugin logic
@@ -322,7 +319,6 @@ class UCP
     // enqueue CSS and JS scripts in admin
     static function admin_enqueue_scripts($hook)
     {
-        $surveys = get_option(UCP_SURVEYS_KEY);
         $meta = self::get_meta();
         $pointers = get_option(UCP_POINTERS_KEY);
 
@@ -330,14 +326,6 @@ class UCP
         if (self::is_plugin_page()) {
             unset($pointers['welcome']);
             update_option(UCP_POINTERS_KEY, $pointers);
-        }
-
-        // survey is shown min 5min after install
-        // DISABLED
-        if (0 && empty($surveys['usage']) && time() - $meta['first_install'] > 300) {
-            $open_survey = true;
-        } else {
-            $open_survey = false;
         }
 
         $promo = self::is_promo_active();
@@ -352,15 +340,12 @@ class UCP
             'plugin_name' => esc_attr__('UnderConstructionPage', 'under-construction-page'),
             'settings_url' => admin_url('options-general.php?page=ucp'),
             'whitelisted_users_placeholder' => esc_attr__('Select whitelisted user(s)', 'under-construction-page'),
-            'open_survey' => $open_survey,
             'promo_countdown' => $countdown,
-            'wpfssl_install_url' => add_query_arg(array('action' => 'install_wpfssl', '_wpnonce' => wp_create_nonce('install_wpfssl'), 'rnd' => wp_rand()), admin_url('admin.php')),
+            'wpcaptcha_install_url' => add_query_arg(array('action' => 'install_wpcaptcha', '_wpnonce' => wp_create_nonce('install_wpcaptcha'), 'rnd' => wp_rand()), admin_url('admin.php')),
             'is_activated' => UCP_license::is_activated(),
             'dialog_upsell_title' => '<img alt="' . esc_attr__('UnderConstructionPage PRO', 'under-construction-page') . '" title="' . esc_attr__('UnderConstructionPage PRO', 'under-construction-page') . '" src="' . UCP_PLUGIN_URL . 'images/ucp_pro_logo_white.png' . '">',
             'weglot_dialog_upsell_title' => '<img alt="' . esc_attr__('Weglot', 'under-construction-page') . '" title="' . esc_attr__('Weglot', 'under-construction-page') . '" src="' . UCP_PLUGIN_URL . 'images/weglot-logo-white.png' . '">',
             'weglot_install_url' => add_query_arg(array('action' => 'install_weglot', '_wpnonce' => wp_create_nonce('install_weglot')), admin_url('admin.php')),
-            'nonce_dismiss_survey' => wp_create_nonce('ucp_dismiss_survey'),
-            'nonce_submit_survey' => wp_create_nonce('ucp_submit_survey'),
             'nonce_submit_support_message' => wp_create_nonce('ucp_submit_support_message'),
             'deactivate_confirmation' => esc_attr__('Are you sure you want to deactivate UnderConstruction plugin? If you are removing it because of a problem please contact our support. They will be more than happy to help.', 'under-construction-page')
         );
@@ -430,25 +415,6 @@ class UCP
     } // dismiss_pointer_ajax
 
 
-    // permanently dismiss a survey
-    static function dismiss_survey_ajax()
-    {
-        check_ajax_referer('ucp_dismiss_survey');
-
-        if(!isset($_POST['survey'])){
-            wp_send_json_error();
-        }
-
-        $surveys = get_option(UCP_SURVEYS_KEY, array());
-        $survey = trim(sanitize_text_field(wp_unslash($_POST['survey'])));
-
-        $surveys[$survey] = -1;
-        update_option(UCP_SURVEYS_KEY, $surveys);
-
-        wp_send_json_success();
-    } // dismiss_survey_ajax
-
-
     // send support message
     static function submit_support_message_ajax()
     {
@@ -461,7 +427,7 @@ class UCP
         } else {
             $email = '';
         }
-        
+
         if (!is_email($email)) {
             wp_send_json_error(esc_attr__('Please double-check your email address.', 'under-construction-page'));
         }
@@ -493,54 +459,6 @@ class UCP
             wp_send_json_error(esc_attr__('Something is not right with your wp_mail() function. Please email as at ucp@webfactoryltd.com.', 'under-construction-page'));
         }
     } // submit_support_message
-
-
-    // submit survey
-    static function submit_survey_ajax()
-    {
-        check_ajax_referer('ucp_submit_survey');
-
-        $options = self::get_options();
-        $meta = self::get_meta();
-        $surveys = get_option(UCP_SURVEYS_KEY);
-
-        $vars = wp_parse_args($_POST, array('survey' => '', 'answers' => '', 'custom_answer' => $options['theme'], 'emailme' => ''));
-        $vars['answers'] = trim($vars['answers'], ',');
-        $vars['custom_answer'] = trim(wp_strip_all_tags($vars['custom_answer']));
-
-        $vars['custom_answer'] .= '; ' . gmdate('Y-m-d H:i:s', $meta['first_install']);
-        $vars['custom_answer'] = trim($vars['custom_answer'], ' ;');
-
-        if (empty($vars['survey']) || empty($vars['answers'])) {
-            wp_send_json_error();
-        }
-
-        $request_params = array('sslverify' => false, 'timeout' => 15, 'redirection' => 2);
-        $request_args = array(
-            'action' => 'submit_survey',
-            'survey' => $vars['survey'],
-            'email' => $vars['emailme'],
-            'answers' => $vars['answers'],
-            'custom_answer' => $vars['custom_answer'],
-            'first_version' => $meta['first_version'],
-            'version' => UCP::$version,
-            'codebase' => 'free',
-            'site' => get_home_url()
-        );
-
-        $url = add_query_arg($request_args, self::$licensing_servers[0]);
-        $response = wp_remote_get(esc_url_raw($url), $request_params);
-
-        if (is_wp_error($response) || !wp_remote_retrieve_body($response)) {
-            $url = add_query_arg($request_args, self::$licensing_servers[1]);
-            $response = wp_remote_get(esc_url_raw($url), $request_params);
-        }
-
-        $surveys[$vars['survey']] = time();
-        update_option(UCP_SURVEYS_KEY, $surveys);
-
-        wp_send_json_success();
-    } // submit_survey_ajax
 
 
     // encode email for frontend use
@@ -866,7 +784,7 @@ class UCP
             if(isset($_SERVER['REQUEST_URI'])){
                 $redirect_url = sanitize_url(wp_unslash($_SERVER['REQUEST_URI']));
             }
-            
+
             $dismiss_url = add_query_arg(array('action' => 'ucp_dismiss_notice', 'notice' => 'rate', 'redirect' => urlencode($redirect_url)), admin_url('admin.php'));
             $dismiss_url = wp_nonce_url($dismiss_url, 'ucp_dismiss_notice');
 
@@ -885,31 +803,6 @@ class UCP
             $shown = true;
         }
 
-        // ask for translation
-        // disabled till further notice
-        if (
-            false && self::is_plugin_page() &&
-            empty($notices['dismiss_translate']) &&
-            (time() - $meta['first_install']) > 1
-        ) {
-            $translate_url = self::generate_web_link('translate-notification', 'translate-the-plugin/');
-
-            $redirect_url = '';
-            if(isset($_SERVER['REQUEST_URI'])){
-                $redirect_url = sanitize_url(wp_unslash($_SERVER['REQUEST_URI']));
-            }
-
-            $dismiss_url = add_query_arg(array('action' => 'ucp_dismiss_notice', 'notice' => 'translate', 'redirect' => urlencode($redirect_url)), admin_url('admin.php'));
-            $dismiss_url = wp_nonce_url($dismiss_url, 'ucp_dismiss_notice');
-
-            echo '<div id="ucp_rate_notice" class="notice-info notice"><p>Hi' . esc_html($name) . ',<br>Help us translate UCP into your language and <b>get a PRO license for free</b>!<br>We want to make <b class="ucp-logo" style="font-weight: bold;">UnderConstructionPage</b> accessible to as many users as possible by translating it into their language. And we need your help!';
-
-            echo '<br><a target="_blank" href="' . esc_url($translate_url) . '" style="vertical-align: baseline; margin-top: 15px;" class="button-primary">' . esc_attr__('Translate UCP into your language &amp; get a PRO license for free', 'under-construction-page') . '</a>';
-            echo '&nbsp;&nbsp;&nbsp;&nbsp;<a href="' . esc_url($dismiss_url) . '">' . esc_attr__('I\'m not interested (remove this notice)', 'under-construction-page') . '</a>';
-            echo '</p></div>';
-            $shown = true;
-        }
-
         // promo for new users
         if (
             self::is_plugin_page() &&
@@ -925,7 +818,7 @@ class UCP
             $dismiss_url = wp_nonce_url($dismiss_url, 'ucp_dismiss_notice');
 
             echo '<div id="ucp_rate_notice" class="notice-info notice"><p>Hi' . esc_html($name) . ',<br>';
-            echo 'We have a <a class="open-ucp-upsell" data-pro-ad="notification-welcome-text" href="#">special time-sensitive offer</a> available just for another <b class="ucp-countdown">59min</b>! A <b>20% DISCOUNT</b> on our most popular lifetime licenses!<br>No nonsense! Pay once and use the plugin forever. <a class="open-ucp-upsell" data-pro-ad="notification-welcome-text2" href="#">Get</a> more than 50+ extra features, 250+ premium themes and over two million professional images.</p>';
+            echo 'We have a <a class="open-ucp-upsell" data-pro-ad="notification-welcome-text" href="#">special time-sensitive offer</a> available just for another <b class="ucp-countdown">59min</b>! A <b>20% DISCOUNT</b> on our most popular lifetime licenses!<br>No nonsense! Pay once and use the plugin forever. <a class="open-ucp-upsell" data-pro-ad="notification-welcome-text2" href="#">Get</a> more than 50+ extra features, 500+ premium themes and over 6 million professional images.</p>';
 
             echo '<a href="#" class="button-primary open-ucp-upsell" data-pro-ad="notification-welcome-button">Upgrade to PRO now with a SPECIAL 20% WELCOME DISCOUNT</a>';
             echo '&nbsp;&nbsp;&nbsp;&nbsp;<a href="' . esc_url($dismiss_url) . '"><small>' . esc_attr__('I\'m not interested (remove this notice)', 'under-construction-page') . '</small></a>';
@@ -948,7 +841,7 @@ class UCP
             $dismiss_url = wp_nonce_url($dismiss_url, 'ucp_dismiss_notice');
 
             echo '<div id="ucp_rate_notice" class="notice-info notice"><p>Hi' . esc_html($name) . ',<br>';
-            echo 'We have a <a class="open-ucp-upsell" data-pro-ad="notification-olduser-text" href="#">special offer</a> only for <b>users like you</b> who\'ve been using the UnderConstructionPage for a longer period of time: a <b>special DISCOUNT</b> on our most popular lifetime licenses!<br>No nonsense! Pay once and use the plugin forever.<br><a class="open-ucp-upsell" data-pro-ad="notification-olduser-text" href="#">Upgrade now</a> to <b>PRO</b> &amp; get more than 50+ extra features, 220+ premium themes and over two million HD images.</p>';
+            echo 'We have a <a class="open-ucp-upsell" data-pro-ad="notification-olduser-text" href="#">special offer</a> only for <b>users like you</b> who\'ve been using the UnderConstructionPage for a longer period of time: a <b>special DISCOUNT</b> on our most popular lifetime licenses!<br>No nonsense! Pay once and use the plugin forever.<br><a class="open-ucp-upsell" data-pro-ad="notification-olduser-text" href="#">Upgrade now</a> to <b>PRO</b> &amp; get more than 50+ extra features, 500+ premium themes and over 6 million HD images.</p>';
 
             echo '<a href="#" class="button-primary open-ucp-upsell" data-pro-ad="notification-olduser-button">Upgrade to PRO now with a SPECIAL DISCOUNT</a>';
             echo '&nbsp;&nbsp;&nbsp;&nbsp;<a href="' . esc_url($dismiss_url) . '"><small>' . esc_attr__('I\'m not interested (remove this notice)', 'under-construction-page') . '</small></a>';
@@ -962,7 +855,7 @@ class UCP
     static function dismiss_notice()
     {
         check_admin_referer( 'ucp_dismiss_notice' );
-        
+
         if (empty($_GET['notice'])) {
             wp_safe_redirect(admin_url());
             exit;
@@ -1331,7 +1224,7 @@ class UCP
             add_settings_error('ucp', 'ga_tracking_id', esc_attr__('Please enter a valid Google Analytics Tracking ID or disable tracking.', 'under-construction-page'));
         }
         unset($options['ga_tracking_toggle']);
-        
+
          //phpcs:ignore as options save nonce is already vefified by the time we get here
         if (!empty($_POST['license-submit'])) { //phpcs:ignore
             if (empty($options['license_key'])) {
@@ -1740,9 +1633,9 @@ class UCP
         echo '</td></tr>';
 
         echo '<tr valign="top">
-    <th scope="row"><label for="social_twitter">' . esc_attr__('Twitter Profile', 'under-construction-page') . '</label></th>
-    <td><input id="social_twitter" type="url" class="regular-text code" name="' . esc_attr(UCP_OPTIONS_KEY) . '[social_twitter]" value="' . esc_attr($options['social_twitter']) . '" placeholder="' . esc_attr__('Twitter profile URL', 'under-construction-page') . '">';
-        echo '<p class="description">' . esc_attr__('Complete URL, with https prefix, to Twitter profile page.', 'under-construction-page') . '</p>';
+    <th scope="row"><label for="social_twitter">' . esc_attr__('X (Twitter) Profile', 'under-construction-page') . '</label></th>
+    <td><input id="social_twitter" type="url" class="regular-text code" name="' . esc_attr(UCP_OPTIONS_KEY) . '[social_twitter]" value="' . esc_attr($options['social_twitter']) . '" placeholder="' . esc_attr__('X (Twitter) profile URL', 'under-construction-page') . '">';
+        echo '<p class="description">' . esc_attr__('Complete URL, with https prefix, to X (Twitter) profile page.', 'under-construction-page') . '</p>';
         echo '</td></tr>';
 
         echo '<tr valign="top">
@@ -1910,7 +1803,7 @@ class UCP
 
         echo '<table class="form-table">';
         echo '<tr valign="top">
-    <td colspan="2"><b style="margin-bottom: 10px; display: inline-block;">' . esc_attr__('Theme', 'under-construction-page') . '</b> (<a target="_blank" href="' . esc_url(self::generate_web_link('themes-browse-premium', 'templates')) . '">browse 350+ premium themes</a>)<br>';
+    <td colspan="2"><b style="margin-bottom: 10px; display: inline-block;">' . esc_attr__('Theme', 'under-construction-page') . '</b> (<a target="_blank" href="' . esc_url(self::generate_web_link('themes-browse-premium', 'templates')) . '">browse 500+ premium themes</a>)<br>';
         echo '<input type="hidden" id="theme_id" name="' . esc_attr(UCP_OPTIONS_KEY) . '[theme]" value="' . esc_attr($options['theme']) . '">';
 
         foreach ($themes as $theme_id => $theme_name) {
@@ -2235,8 +2128,8 @@ class UCP
         echo '<h3 class="textcenter">Upgrade to build landing pages, coming soon pages, maintenance &amp; under construction pages faster &amp; easier!</h3>';
         echo '<p class="textcenter"><a href="#" class="textcenter open-ucp-upsell" data-pro-ad="sidebar-logo"><img style="max-width: 90%;" src="' . esc_url(UCP_PLUGIN_URL) . '/images/ucp_pro_logo.png" alt="UnderConstructionPage PRO" title="UnderConstructionPage PRO"></a></p>';
         echo '<ul class="plain-list">
-        <li>350+ templates</li>
-        <li>5+ million searchable HD images</li>
+        <li>500+ templates + new ones added monthly</li>
+        <li>6+ million searchable HD images</li>
         <li>Drag &amp; drop builder</li>
         <li>Email autoresponders integration</li>
         <li>Affiliate &amp; traffic tracking</li>
@@ -2246,12 +2139,12 @@ class UCP
         echo '<p class="textcenter"><a href="#" class="button button-primary button-large open-ucp-upsell" data-pro-ad="sidebar-button">Get PRO Now</a></p>';
         echo '</div>';
 
-        if (!defined('WPFSSL_OPTIONS_KEY')) {
-          echo '<div id="wpfssl-ad">';
-          echo '<h3 class="textcenter"><b>Problems with SSL certificate?<br>Moving a site from HTTP to HTTPS?<br>Mixed content giving you troubles?</b><br><br><u>Fix all SSL problems with one plugin!</u></h3>';
-          echo '<p class="textcenter"><a href="#" class="textcenter install-wpfssl"><img style="max-width: 90%;" src="' . esc_url(UCP_PLUGIN_URL) . '/images/wp-force-ssl-logo.png" alt="WP Force SSL" title="WP Force SSL"></a></p>';
-          echo '<p class="textcenter"><br><a href="#" class="install-wpfssl button button-primary">Install &amp; activate the free WP Force SSL plugin</a></p><p><a href="https://wordpress.org/plugins/wp-force-ssl/" target="_blank">WP Force SSL</a> is a free WP plugin maintained by the same team as this Maintenance plugin. It has <b>+150,000 users, 5-star rating</b>, and is hosted on the official WP repository.</p>';
-          echo '</div>';
+        if (!defined('WPCAPTCHA_PLUGIN_FILE')) {
+            echo '<div id="wpcaptcha-ad">';
+            echo '<h3 class="textcenter"><b>Having problems with spam or bots? AI scapers giving you troubles?<br><br><u>Fix all your spam problems with one plugin!</u></b></h3>';
+            echo '<p class="textcenter"><a href="#" class="textcenter install-wpcaptcha"><img style="max-width: 90%;" src="' . esc_url(UCP_PLUGIN_URL) . '/images/wp-captcha-logo.png" alt="Advanced Google ReCaptcha" title="Advanced Google ReCaptcha"></a></p>';
+            echo '<p class="textcenter"><br><a href="#" class="install-wpcaptcha button button-primary">Install &amp; activate the free Google ReCaptcha plugin</a></p><p><a href="https://wordpress.org/plugins/advanced-google-recaptcha/" target="_blank">Advanced Google ReCaptcha</a> is a free WP plugin maintained by the same team as WP Reset. It has <b>+200,000 users, 5-star rating</b>, and is hosted on the official WP repository.</p>';
+            echo '</div>';
         }
         echo '</div>';
         echo '</div>'; // wrap
@@ -2281,9 +2174,9 @@ class UCP
           $header = '';
         }
 
-        $products['agency'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'agency-welcome')), 'price' => 'BUY NOW <u>$51 OFF</u><br><del>$250</del> $199<br><small>Discount ends in <b class="ucp-countdown">59min 30sec</b></small>');
-        $products['team'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'team-welcome')), 'price' => 'BUY NOW <u>$30 OFF</u><br><del>$119</del> $89<br><small>Discount ends in <b class="ucp-countdown">59min 30sec</b></small>');
-        $products['personal-monthly'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'personal-monthly')), 'price' => 'only $8.99<small>/month</small>');
+        $products['agency'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'agency-welcome')), 'price' => 'BUY NOW <u>$51 OFF</u><br><del>$250</del> $199');
+        $products['team'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'team-welcome')), 'price' => 'BUY NOW <u>$30 OFF</u><br><del>$119</del> $89');
+        $products['personal-monthly'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'personal-monthly')), 'price' => 'only $9.99<small>/month</small>');
         $products['personal-yearly'] = array('link' => self::generate_web_link('pricing-table', 'buy2/', array('product' => 'personal-yearly')), 'price' => 'BUY NOW<br>$49<small>/year</small>');
 
         // upsell dialog
@@ -2301,12 +2194,12 @@ class UCP
         echo '</div>';
 
         echo '<div class="ucp-pro-feature">';
-        echo '<span>5+ Million HD Searchable Images</span>';
+        echo '<span>6+ Million HD Searchable Images</span>';
         echo '<p>There\'s nothing worse than googling for hours just to find that the perfect image you need is either copyrighted or too small. Enjoy a vast library of 4K+ sized images - categorized &amp; copyright free!</p>';
         echo '</div>';
 
         echo '<div class="ucp-pro-feature">';
-        echo '<span>350+ Templates</span>';
+        echo '<span>500+ Templates</span>';
         echo '<p>Building your own page from scratch is fun, but often you don\'t have time to do it! Use one of our purpose-built templates, change a few lines of text and you\'re ready to rock!</p>';
         echo '</div>';
 
@@ -2350,7 +2243,7 @@ class UCP
     <tr>
       <td>One Time Payment</td>
       <td>One Time Payment</td>
-      <td>Yearly / Monthly Payment</td>
+      <td>Yearly Payment</td>
     </tr>
     <tr>
       <td>100 Client or Personal Sites<br>(licenses are transferable between sites)</td>
@@ -2368,9 +2261,9 @@ class UCP
       <td>1 Year/Month of Support &amp; Updates</td>
     </tr>
     <tr style="display: none;">
-      <td>5 Million+ Hi-Res Images</td>
-      <td>5 Million+ Hi-Res Images</td>
-      <td>5 Million+ Hi-Res Images</td>
+      <td>6 Million+ Hi-Res Images</td>
+      <td>6 Million+ Hi-Res Images</td>
+      <td>6 Million+ Hi-Res Images</td>
     </tr>
     <tr>
       <td>Drag &amp; Drop Builder</td>
@@ -2378,13 +2271,13 @@ class UCP
       <td>Drag &amp; Drop Builder</td>
     </tr>
     <tr>
-      <td>150+ PRO Templates</td>
-      <td>150+ PRO Templates</td>
-      <td>150+ PRO Templates</td>
+      <td>250+ PRO Templates</td>
+      <td>250+ PRO Templates</td>
+      <td>250+ PRO Templates</td>
     </tr>
     <tr>
-      <td>150+ Agency Templates</td>
-      <td>150+ Agency Templates</td>
+      <td>220+ Agency Templates</td>
+      <td>220+ Agency Templates</td>
       <td><span class="dashicons dashicons-no"></td>
     </tr>
     <tr>
@@ -2406,17 +2299,16 @@ class UCP
       <td>
         <a style="margin-bottom: 8px;" data-href-org="' . esc_url($products['personal-yearly']['link']) . '" class="promo-button go-to-license-key" href="' . esc_url($products['personal-yearly']['link']) . '" target="_blank">';
         self::wp_kses_wf($products['personal-yearly']['price']);
-        echo '</a>or <a target="_blank" class="go-to-license-key promo-link" data-href-org="' . esc_url($products['personal-monthly']['link']) . '" href="' . esc_url($products['personal-monthly']['link']) . '">';
-        self::wp_kses_wf($products['personal-monthly']['price']);
-        echo '</a>
+        echo '</a>';
+        echo '
       </td>
     </tr>
     <tr class="bb0">
-    <td colspan="3"><span class="instant-download"><span class="dashicons dashicons-yes"></span> Secure payment via Paddle <span class="dashicons dashicons-yes"></span> Instant activation from WP admin <span class="dashicons dashicons-yes"></span> 100% No-Risk 7 Day Money Back Guarantee</span></td>
+    <td colspan="3"><div class="upsell-footer-2">Need the plugin only for a <b>short period of time</b>? <a class="go-to-license-key promo-link" target="_blank" data-href-org="' . esc_url($products['personal-monthly']['link']) . '" href="' . esc_url($products['personal-monthly']['link']) . '"><b>Get it for only $9.99</b><small> /month</small></a> &amp; cancel any time!</div></td>
     </tr>
   </tbody>
 </table>';
-        echo '<p class="upsell-footer">More pricing options &amp; details about packages are available on <a href="' . esc_url(self::generate_web_link('pricing-table-more-info')) . '" target="_blank">underconstructionpage.com</a>. Already have a PRO license? <a href="#" class="go-to-license-key">Activate it</a>.</p>';
+        echo '<p class="upsell-footer">More pricing options &amp; details about packages are available on <a href="' . esc_url(self::generate_web_link('pricing-table-more-info')) . '" target="_blank">underconstructionpage.com</a>. Already have a PRO license? <a href="#" class="go-to-license-key">Activate it</a>.<br><b>100% No-Risk Money Back Guarantee!</b> If you don\'t like the plugin over the next 7 days, we\'ll refund 100% of your money. No questions asked! Payments are processed by our merchant of records - <a href="https://paddle.com/" target="_blank">Paddle</a>.</p>';
         echo '</div>'; // pricing tab
         echo '</div>';
 
@@ -2467,7 +2359,7 @@ class UCP
     static function install_weglot()
     {
         check_ajax_referer('install_weglot');
-        
+
         if (false === current_user_can('administrator')) {
             wp_die('Sorry, you have to be an admin to run this action.');
         }
@@ -2524,17 +2416,17 @@ class UCP
     } // install_weglot
 
 
-    // auto download / install / activate WP Force SSL plugin
-    static function install_wpfssl()
+    // auto download / install / activate WP Captcha plugin
+    static function install_wpcaptcha()
     {
-        check_ajax_referer('install_wpfssl');
+        check_ajax_referer('install_wpcaptcha');
 
-        if (false === current_user_can('administrator')) {
+        if (false === current_user_can('manage_options')) {
             wp_die('Sorry, you have to be an admin to run this action.');
         }
 
-        $plugin_slug = 'wp-force-ssl/wp-force-ssl.php';
-        $plugin_zip = 'https://downloads.wordpress.org/plugin/wp-force-ssl.latest-stable.zip';
+        $plugin_slug = 'advanced-google-recaptcha/advanced-google-recaptcha.php';
+        $plugin_zip = 'https://downloads.wordpress.org/plugin/advanced-google-recaptcha.latest-stable.zip';
 
         @include_once ABSPATH . 'wp-admin/includes/plugin.php';
         @include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
@@ -2551,38 +2443,38 @@ class UCP
 		</style>';
 
         echo '<div style="margin: 20px; color:#444;">';
-        echo 'If things are not done in a minute <a target="_parent" href="' . esc_url(admin_url('plugin-install.php?s=force%20ssl%20webfactory&tab=search&type=term')) . '">install the plugin manually via Plugins page</a><br><br>';
+        echo 'If things are not done in a minute <a target="_parent" href="' . esc_url(admin_url('plugin-install.php?s=google%20recaptcha%20webfactory&tab=search&type=term')) . '">install the plugin manually via Plugins page</a><br><br>';
         echo 'Starting ...<br><br>';
 
         wp_cache_flush();
         $upgrader = new Plugin_Upgrader();
-        echo 'Check if WP Force SSL is already installed ... <br />';
+        echo 'Check if Advanced Google ReCaptcha is already installed ... <br />';
         if (self::is_plugin_installed($plugin_slug)) {
-            echo 'WP Force SSL is already installed! <br /><br />Making sure it\'s the latest version.<br />';
+            echo 'Advanced Google ReCaptcha is already installed! <br /><br />Making sure it\'s the latest version.<br />';
             $upgrader->upgrade($plugin_slug);
             $installed = true;
         } else {
-            echo 'Installing WP Force SSL.<br />';
+            echo 'Installing Advanced Google ReCaptcha.<br />';
             $installed = $upgrader->install($plugin_zip);
         }
         wp_cache_flush();
 
         if (!is_wp_error($installed) && $installed) {
-            echo 'Activating WP Force SSL.<br />';
+            echo 'Activating Advanced Google ReCaptcha.<br />';
             $activate = activate_plugin($plugin_slug);
 
             if (is_null($activate)) {
-                echo 'WP Force SSL Activated.<br />';
+                echo 'Advanced Google ReCaptcha Activated.<br />';
 
                 echo '<script>setTimeout(function() { top.location = "options-general.php?page=ucp"; }, 1000);</script>';
                 echo '<br>If you are not redirected in a few seconds - <a href="options-general.php?page=ucp" target="_parent">click here</a>.';
             }
         } else {
-            echo 'Could not install WP Force SSL. You\'ll have to <a target="_parent" href="' . esc_url(admin_url('plugin-install.php?s=force%20ssl%20webfactory&tab=search&type=term')) . '">download and install manually</a>.';
+            echo 'Could not install Advanced Google ReCaptcha. You\'ll have to <a target="_parent" href="' . esc_url(admin_url('plugin-install.php?s=google%20recaptcha%20webfactory&tab=search&type=term')) . '">download and install manually</a>.';
         }
 
         echo '</div>';
-    } // install_wpfssl
+    } // install_wpcaptcha
 
     static function wp_kses_wf($html)
     {
@@ -2702,7 +2594,7 @@ class UCP
 
         $allowed_tags['head'] = array(
         );
-        
+
         $allowed_tags['!doctype'] = array(
             'html' => true,
         );
